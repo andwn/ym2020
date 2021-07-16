@@ -5,11 +5,10 @@
             "includePath": [
                 "${workspaceRoot}/inc",
                 "${workspaceRoot}/res",
-                "C:/msys64/home/andy/mars/include",
-                "C:/msys64/home/andy/mars/m68k-elf/include"
+                "${HOME}/mars/m68k-elf/include"
             ],
             "defines": [],
-            "intelliSenseMode": "clang-x64",
+            "intelliSenseMode": "linux-gcc-x86",
             "browse": {
                 "path": [
                     "${workspaceRoot}/inc",
@@ -20,7 +19,11 @@
                 "databaseFilename": ""
             },
             "cStandard": "c99",
-            "cppStandard": "c++17"
+            "cppStandard": "c++11",
+            "compilerPath": "/usr/bin/gcc",
+            "compilerArgs": [
+                "-ffreestanding"
+            ]
         }
     ],
     "version": 4

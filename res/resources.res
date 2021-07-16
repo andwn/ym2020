@@ -24,12 +24,56 @@ PALETTE PAL_UN      "spr/urban_ninja.png"
 PALETTE PAL_VH      "spr/virtual_heaven.png"
 PALETTE PAL_WTCS    "spr/while_the_city.png"
 
+PALETTE PAL_T_AETA    "ts/im_all_ears.png"   
+PALETTE PAL_T_ANTR    "ts/a_night_to.png"    
+PALETTE PAL_T_BAF     "ts/bolt_action.png"   
+PALETTE PAL_T_BK      "ts/be_kind.png"       
+PALETTE PAL_T_BM      "ts/bloody_mary.png"   
+PALETTE PAL_T_Tube    "ts/beatemup.png"      
+PALETTE PAL_T_CTC     "ts/chippy.png"        
+PALETTE PAL_T_DS      "ts/dragonslayer.png"  
+PALETTE PAL_T_Haven   "ts/haven.png"         
+PALETTE PAL_T_MV      "ts/maiden_voyage.png" 
+PALETTE PAL_T_MR      "ts/megaracer.png"     
+PALETTE PAL_T_ML      "ts/mind_lock.png"     
+PALETTE PAL_T_CNV     "ts/night_vision.png"  
+PALETTE PAL_T_ROD     "ts/reliquary.png"     
+PALETTE PAL_T_STTE    "ts/straight_to.png"   
+PALETTE PAL_T_SCA     "ts/sunken_city.png"   
+PALETTE PAL_T_Tigon   "ts/tigon.png"         
+PALETTE PAL_T_UN      "ts/urban_ninja.png"   
+PALETTE PAL_T_VH      "ts/virtual_heaven.png"
+PALETTE PAL_T_WTCS    "ts/while_the_city.png"
+
 # Background Images
 IMAGE   IMG_Title   "img/title.png"  2 1
 IMAGE   IMG_Back    "img/back.png"   2 1
+IMAGE   IMG_BackC   "img/back_credits.png" 2 1
 
 # Tilesets
-TILESET TS_Mode     "ts/modes.png"   0 0
+TILESET TS_Mode     "ts/modes.png"    0 0
+TILESET TS_Progress "ts/progress.png" 0 0
+
+TILESET  TS_AETA    "ts/im_all_ears.png"    0 0
+TILESET  TS_ANTR    "ts/a_night_to.png"     0 0
+TILESET  TS_BAF     "ts/bolt_action.png"    0 0
+TILESET  TS_BK      "ts/be_kind.png"        0 0
+TILESET  TS_BM      "ts/bloody_mary.png"    0 0
+TILESET  TS_Tube    "ts/beatemup.png"       0 0
+TILESET  TS_CTC     "ts/chippy.png"         0 0
+TILESET  TS_DS      "ts/dragonslayer.png"   0 0
+TILESET  TS_Haven   "ts/haven.png"          0 0
+TILESET  TS_MV      "ts/maiden_voyage.png"  0 0
+TILESET  TS_MR      "ts/megaracer.png"      0 0
+TILESET  TS_ML      "ts/mind_lock.png"      0 0
+TILESET  TS_CNV     "ts/night_vision.png"   0 0
+TILESET  TS_ROD     "ts/reliquary.png"      0 0
+TILESET  TS_STTE    "ts/straight_to.png"    0 0
+TILESET  TS_SCA     "ts/sunken_city.png"    0 0
+TILESET  TS_Tigon   "ts/tigon.png"          0 0
+TILESET  TS_UN      "ts/urban_ninja.png"    0 0
+TILESET  TS_VH      "ts/virtual_heaven.png" 0 0
+TILESET  TS_WTCS    "ts/while_the_city.png" 0 0
 
 # Sprites
 SPRITE  SPR_Wheel   "spr/wheel.png"          2 2 0 0 NONE NONE
@@ -65,7 +109,7 @@ XGM     BGM_BM      "bgm/bloody_mary.vgm"            -1
 XGM     BGM_CTC     "bgm/chippy_the_cat.vgm"         -1
 XGM     BGM_DS      "bgm/dragon_slayer.vgm"          -1
 XGM     BGM_Haven   "bgm/haven.vgm"                  -1
-XGM     BGM_CNV     "bgm/night_vision.vgm"           1
+XGM     BGM_CNV     "bgm/night_vision.vgm"           0
 XGM     BGM_ML      "bgm/mind_lock.vgm"              -1
 XGM     BGM_MR      "bgm/mega_racer.vgm"             -1
 XGM     BGM_MV      "bgm/maiden_voyage.vgm"          -1

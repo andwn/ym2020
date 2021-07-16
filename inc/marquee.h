@@ -9,5 +9,5 @@ typedef struct {
 
 extern void marquee_refresh(Marquee *m);
 extern void marquee_update(Marquee *m);
-extern void marquee_set_track(Marquee *m, uint16_t track);
-extern void marquee_init(Marquee *m, uint16_t x, uint16_t y, uint16_t len, uint16_t track);
+extern void marquee_set_track(Marquee *m, const char *artist, const char *name);
+extern void marquee_init(Marquee *m, uint16_t x, uint16_t y, uint16_t len);
