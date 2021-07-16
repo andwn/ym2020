@@ -63,8 +63,8 @@ void order_shuffle() {
 #define BOX2_LEFT   (BOX2_CENTER - 64)
 #define BOX2_RIGHT  (BOX2_CENTER + 64)
 
-uint16_t mode_index, wheel_index, box1_index, box2_index, progress_index, screen_index;
-uint16_t boxes_moving, wheel_time;
+uint16_t mode_index, wheel_index, box1_index, box2_index, progress_index, screen_index, belt_index;
+uint16_t boxes_moving, wheel_time, belt_x;
 int16_t boxes_xspeed;
 
 
@@ -78,6 +78,30 @@ void screen_refresh(uint16_t track) {
 		}
 		yy += 4;
 	}
+}
+
+void belt_draw(uint16_t full) {
+	uint16_t belt[40];
+	uint16_t off = belt_x & 15;
+	uint16_t rep[2] = { 
+		TILE_ATTR_FULL(PAL0,0,0,0,off > 7 ? belt_index : belt_index + 1 + off),
+		TILE_ATTR_FULL(PAL0,0,0,0,off < 8 ? belt_index : belt_index - 7 + off)
+	};
+	for(uint16_t x = 0; x < 40; x += 2) {
+		belt[x] = rep[0];
+		belt[x+1] = rep[1];
+	}
+	if(full) {
+		VDP_setTileMapDataRow(BG_A, belt, 22, 0, 40, DMA);
+	} else {
+		VDP_setTileMapDataRow(BG_A, belt, 16, 0, 12, DMA);
+		VDP_setTileMapDataRow(BG_A, belt, 16, 28, 12, DMA);
+	}
+}
+
+void belt_reset(uint16_t full) {
+	belt_x = 0;
+	belt_draw(full);
 }
 
 void boxes_move_left() {
@@ -142,7 +166,16 @@ void boxes_update(Sprite *box[], Sprite *wheel[], uint16_t track) {
 	if(SPR_getPositionX(box[0]) == BOX1_CENTER) {
 		boxes_moving = FALSE;
 		screen_refresh(track);
+	} else {
+		uint16_t data[4*5];
+		for(uint16_t i = 0; i < 4*5; i++) {
+			data[i] = random();
+		}
+		VDP_setTileMapDataRect(BG_A, data, 15, 9, 4, 5, 4, DMA);
 	}
+	// Move conveyor belts
+	belt_x -= boxes_xspeed;
+	belt_draw(FALSE);
 }
 
 /* MAIN */
@@ -322,6 +355,9 @@ void main_player() {
 	progress_index += box2_index;
 	VDP_loadTileSet(&TS_Progress, progress_index, DMA);
 	screen_index = progress_index + 10;
+	belt_index = screen_index + 20;
+	VDP_loadTileSet(&TS_Belt, belt_index, DMA);
+	belt_reset(FALSE);
 	// Sprites for wheels
 	Sprite *wheel[8] = {
 		SPR_addSprite(&SPR_Wheel, 1,  136, TILE_ATTR(PAL0, 0, 0, 0)),
@@ -446,6 +482,21 @@ void main_credits() {
 	VDP_setEnable(FALSE);
 	VDP_drawImage(BG_B, &IMG_BackC, 0, 0);
 	VDP_clearPlane(BG_A, TRUE);
+	Sprite *wheel[16];
+	for(uint16_t i = 0; i < 16; i++) {
+		wheel[i] = SPR_addSprite(&SPR_Wheel, 1 + i*20,  184, TILE_ATTR(PAL0, 0, 0, 0));
+		SPR_setAutoTileUpload(wheel[i], FALSE);
+		SPR_setVRAMTileIndex(wheel[i], wheel_index + (i&1) * 4);
+		wheel[i]->frameInd = i&1;
+	}
+	Sprite *box[4];
+	for(uint16_t i = 0; i < 4; i++) {
+		box[i] = SPR_addSprite(&SPR_YM20, 40 + i*88, 128, TILE_ATTR(PAL2, 0, 0, 0));
+		SPR_setAutoTileUpload(box[i], FALSE);
+		SPR_setVRAMTileIndex(box[i], box1_index);
+	}
+	SPR_loadAllFrames(&SPR_YM20, box1_index, NULL);
+	belt_reset(TRUE);
 	VDP_setEnable(TRUE);
 	SYS_enableInts();
 
@@ -454,12 +505,13 @@ void main_credits() {
 	VDP_drawText("Art & Design", 	2,  6);
 	VDP_drawText("Programmer", 		2,  8);
 	VDP_drawText("Hardware", 		2,  10);
-	VDP_drawText("Manufacturing", 	2,  12);
+	VDP_drawText("Addt'l Hardware", 2,  12);
 	VDP_drawText("Catskull", 		24, 4);
 	VDP_drawText("Drew Wise", 		24, 6);
-	VDP_drawText("Grind", 			24, 8);
-	VDP_drawText("Orgia Mode", 		24, 10);
-	VDP_drawText("Retro Stage", 	24, 12);
+	VDP_drawText("Andy Grind", 		24, 8);
+	VDP_drawText("Retro Stage", 	24, 10);
+	VDP_drawText("Orgia Mode", 		24, 12);
+	
 	VDP_setPalette(PAL0, PAL_Back.data);
 	VDP_setPalette(PAL1, text_pal);
 	VDP_setPalette(PAL2, PAL_YM20.data);
@@ -468,9 +520,37 @@ void main_credits() {
 	while(TRUE) {
 		joy_update();
 		if(joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
+
+		// Animate wheels
+		if(wheel_time) {
+			wheel_time--;
+		} else {
+			for(uint16_t i = 0; i < 16; i++) {
+				if(++wheel[i]->frameInd > 3) wheel[i]->frameInd = 0;
+				SPR_setVRAMTileIndex(wheel[i], wheel_index + wheel[i]->frameInd * 4);
+			}
+			wheel_time = 8;
+		}
+		// Move boxes
+		for(uint16_t i = 0; i < 4; i++) {
+			int16_t x = SPR_getPositionX(box[i]);
+			int16_t y = SPR_getPositionY(box[i]);
+			if(x <= -40) {
+				SPR_setPosition(box[i], 320, y);
+			} else {
+				SPR_setPosition(box[i], x - 1, y);
+			}
+		}
+		// Move conveyor belt
+		belt_x += 1;
+		belt_draw(TRUE);
+		
 		SPR_update();
 		SYS_doVBlankProcess();
 	}
+
+	for(uint16_t i = 0; i < 16; i++) SPR_releaseSprite(wheel[i]);
+	for(uint16_t i = 0; i < 4; i++) SPR_releaseSprite(box[i]);
 }
 
 int main() {
