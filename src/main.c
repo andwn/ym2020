@@ -53,6 +53,13 @@ void order_shuffle() {
 	}
 }
 
+uint16_t find_song(uint16_t id) {
+	for(uint16_t i = 0; i < NUM_SONGS; i++) {
+		if(track_order[i] == id) return i;
+	}
+	return 0;
+}
+
 /* ANIMATION */
 
 #define BOX1_CENTER 26
@@ -438,18 +445,24 @@ void main_player() {
 					pause_track();
 				}
 			} else if(joy_pressed(BUTTON_B)) {
+				paused = 1;
 				XGM_pausePlay();
 				marquee_set_track(&m_playing, "N/A", "N/A");
 			} else if(joy_pressed(BUTTON_C)) {
+				uint16_t old_id = track_order[prev_track];
 				mode = cycle_mode(mode, mode_index);
+				prev_track = find_song(old_id);
 				boxes_swap(track);
+				screen_refresh(track);
+				//if(!paused) {
 				//if(track != prev_track) {
-					prev_track = track;
-					play_track(track);
-					marquee_set_track(&m_playing, song_artist(track), song_name(track));
-					timer_reset(&playtime);
-					timer_draw(&playtime, 21, 14);
-					timer_draw_bar(&playtime, song_len(track), 14, 15);
+					//prev_track = track;
+					//play_track(track);
+					//marquee_set_track(&m_playing, song_artist(track), song_name(track));
+					//timer_reset(&playtime);
+					//timer_draw(&playtime, 21, 14);
+					//timer_draw_bar(&playtime, song_len(track), 14, 15);
+				//}
 				//}
 			} else if(joy_pressed(BUTTON_START)) {
 				XGM_pausePlay();
@@ -458,11 +471,26 @@ void main_player() {
 			}
 		}
 		if(!paused) {
-			marquee_update(&m_playing);
-			if(timer_tick(&playtime)) {
+			const Timer *len = song_len(prev_track);
+			if(mode != 1 && ((playtime.m > len->m) || (playtime.m == len->m && playtime.s > len->s)
+				|| (playtime.m == len->m && playtime.s == len->s && playtime.f > len->f))) {
+				// Track finished playing
+				if(track == prev_track) {
+					// Scroll automatically if the currently selected track is also the playing track
+					if(++track >= NUM_SONGS) track = 0;
+					boxes_move_right();
+					marquee_set_track(&m_selected, song_artist(track), song_name(track));
+				}
+				// Change now playing display and reset timer
+				if(++prev_track >= NUM_SONGS) prev_track = 0;
+				play_track(prev_track);
+				marquee_set_track(&m_playing, song_artist(prev_track), song_name(prev_track));
+				timer_reset(&playtime);
+			} else if(timer_tick(&playtime)) {
 				timer_draw(&playtime, 21, 14);
 				timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
 			}
+			marquee_update(&m_playing);
 		}
 		marquee_update(&m_selected);
 		boxes_update(box, wheel, track);
@@ -506,20 +534,19 @@ void main_credits() {
 	VDP_drawText("Programmer", 		2,  8);
 	VDP_drawText("Hardware", 		2,  10);
 	VDP_drawText("Addt'l Hardware", 2,  12);
-	VDP_drawText("Catskull", 		24, 4);
-	VDP_drawText("Drew Wise", 		24, 6);
-	VDP_drawText("Andy Grind", 		24, 8);
+	VDP_drawText("   Catskull", 	24, 4);
+	VDP_drawText("  Drew Wise", 	24, 6);
+	VDP_drawText(" Andy Grind", 	24, 8);
 	VDP_drawText("Retro Stage", 	24, 10);
-	VDP_drawText("Orgia Mode", 		24, 12);
+	VDP_drawText(" Orgia Mode", 	24, 12);
 	
 	VDP_setPalette(PAL0, PAL_Back.data);
 	VDP_setPalette(PAL1, text_pal);
 	VDP_setPalette(PAL2, PAL_YM20.data);
-	uint16_t timer = 0;
 
 	while(TRUE) {
 		joy_update();
-		if(joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
+		if(belt_x > 5 && joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
 
 		// Animate wheels
 		if(wheel_time) {
