@@ -122,3 +122,5 @@ XGM     BGM_Tube    "bgm/beat_em_up.vgm"             -1
 XGM     BGM_UN      "bgm/urban_ninja.vgm"            -1
 XGM     BGM_VH      "bgm/virtua_heaven.vgm"          -1
 XGM     BGM_WTCS    "bgm/while_the_city_sleeps.vgm"  -1
+
+XGM     BGM_Fireworks "bgm/fireworks.vgm" -1

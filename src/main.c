@@ -259,7 +259,11 @@ void main_title() {
 	uint16_t cycle_ticks = 0;
 	SYS_disableInts();
 	VDP_setEnable(FALSE);
-	VDP_drawImage(BG_B, &IMG_Title, 0, 0);
+	VDP_loadTileSet(IMG_Back.tileset, TILE_USERINDEX, DMA);
+	VDP_loadTileSet(IMG_BackC.tileset, 762, DMA);
+	VDP_loadTileSet(IMG_Title.tileset, 880, DMA);
+	VDP_setTileMapEx(BG_B, IMG_Title.tilemap, 880, 0, 0, 0, 0, IMG_Title.tilemap->w, IMG_Title.tilemap->h, DMA);
+	//VDP_drawImage(BG_B, &IMG_Title, 0, 0);
 	VDP_setPalette(PAL0, black_pal /*PAL_Title.data*/);
 	VDP_setPalette(PAL1, black_pal /*text_pal*/);
 	VDP_drawText("PRESS START", 15, 20);
@@ -341,16 +345,15 @@ void main_player() {
 	VDP_setPalette(PAL1, black_pal);
 	VDP_setEnable(FALSE);
 	VDP_clearPlane(BG_A, TRUE);
-	curTileInd = TILE_USERINDEX;
 	
 	boxes_moving = FALSE;
 	uint16_t paused = 0;
 	uint16_t track = 0;
 	uint16_t prev_track = 0;
-	// Load graphics
+	
+	VDP_setTileMapEx(BG_B, IMG_Back.tilemap, TILE_USERINDEX, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
 	mode_index = TILE_USERINDEX + IMG_Back.tileset->numTile;
 	wheel_index = mode_index + TS_Mode.numTile;
-	VDP_drawImage(BG_B, &IMG_Back, 0, 0);
 	VDP_loadTileSet(&TS_Mode, mode_index, DMA);
 	SPR_loadAllFrames(&SPR_Wheel, wheel_index, &box1_index);
 	// Set mode to shuffle before loading boxes
@@ -394,14 +397,8 @@ void main_player() {
 		SPR_setAutoTileUpload(box[i], FALSE);
 		SPR_setVRAMTileIndex(box[i], i ? box2_index : box1_index);
 	}
-	// Load palettes
-	VDP_setPalette(PAL0, PAL_Back.data);
-	//VDP_setPalette(PAL1, text_pal);
-	VDP_setPalette(PAL2, song_pal(prev));
-	VDP_setPalette(PAL3, song_pal(next));
+	
 	screen_refresh(track);
-	VDP_setEnable(TRUE);
-
 	Marquee m_playing, m_selected;
 	marquee_init(&m_playing, 24, 2, 14);
 	marquee_init(&m_selected, 13, 21, 14);
@@ -416,9 +413,18 @@ void main_player() {
 	VDP_drawText("Previous", 2, 8);
 	VDP_drawText("Next", 32, 8);
 	
+	VDP_setEnable(TRUE);
+	SYS_enableInts();
+	SPR_update();
+	SYS_doVBlankProcess();
+	
+	VDP_setPalette(PAL0, PAL_Back.data);
+	//VDP_setPalette(PAL1, text_pal);
+	VDP_setPalette(PAL2, song_pal(prev));
+	VDP_setPalette(PAL3, song_pal(next));
+	
 	// IT BEGINS
 	play_track(track);
-	SYS_enableInts();
 	
 	while(TRUE) {
 		joy_update();
@@ -433,7 +439,7 @@ void main_player() {
 				marquee_set_track(&m_selected, song_artist(track), song_name(track));
 			}
 			if(joy_pressed(BUTTON_A)) {
-				if(track != prev_track) {
+				if(track != prev_track || (!XGM_isPlaying() && !paused)) {
 					prev_track = track;
 					paused = 0;
 					play_track(track);
@@ -451,7 +457,7 @@ void main_player() {
 					pause_track();
 				}
 			} else if(joy_pressed(BUTTON_B)) {
-				paused = 1;
+				paused = 0;
 				XGM_pausePlay();
 				marquee_set_track(&m_playing, "N/A", "N/A");
 				timer_reset(&playtime);
@@ -480,7 +486,7 @@ void main_player() {
 				break;
 			}
 		}
-		if(!paused) {
+		if(!paused && XGM_isPlaying()) {
 			const Timer *len = song_len(prev_track);
 			if(mode != 1 && ((playtime.m > len->m) || (playtime.m == len->m && playtime.s > len->s)
 				|| (playtime.m == len->m && playtime.s == len->s && playtime.f > len->f))) {
@@ -510,15 +516,18 @@ void main_player() {
 
 	for(uint16_t i = 0; i < 8; i++) SPR_releaseSprite(wheel[i]);
 	for(uint16_t i = 0; i < 2; i++) SPR_releaseSprite(box[i]);
+	
+	SPR_update();
+	SYS_doVBlankProcess();
 }
 
 void main_credits() {
 	SYS_disableInts();
 	VDP_setPalette(PAL0, black_pal);
 	VDP_setPalette(PAL1, black_pal);
-	curTileInd = TILE_USERINDEX;
 	VDP_setEnable(FALSE);
-	VDP_drawImage(BG_B, &IMG_BackC, 0, 0);
+	
+	VDP_setTileMapEx(BG_B, IMG_BackC.tilemap, 762, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
 	VDP_clearPlane(BG_A, TRUE);
 	Sprite *wheel[16];
 	for(uint16_t i = 0; i < 16; i++) {
@@ -535,8 +544,11 @@ void main_credits() {
 	}
 	SPR_loadAllFrames(&SPR_YM20, box1_index, NULL);
 	belt_reset(TRUE);
+	
 	VDP_setEnable(TRUE);
 	SYS_enableInts();
+	SPR_update();
+	SYS_doVBlankProcess();
 
 	VDP_drawText("YM2020", 			17, 2);
 	VDP_drawText("Producer", 		2,  4);
@@ -553,10 +565,12 @@ void main_credits() {
 	VDP_setPalette(PAL0, PAL_Back.data);
 	VDP_setPalette(PAL1, text_pal);
 	VDP_setPalette(PAL2, PAL_YM20.data);
+	
+	XGM_startPlay(BGM_Fireworks);
 
 	while(TRUE) {
 		joy_update();
-		if(belt_x > 5 && joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
+		if(belt_x > 10 && joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
 
 		// Animate wheels
 		if(wheel_time) {
@@ -588,6 +602,9 @@ void main_credits() {
 
 	for(uint16_t i = 0; i < 16; i++) SPR_releaseSprite(wheel[i]);
 	for(uint16_t i = 0; i < 4; i++) SPR_releaseSprite(box[i]);
+	
+	SPR_update();
+	SYS_doVBlankProcess();
 }
 
 int main() {
