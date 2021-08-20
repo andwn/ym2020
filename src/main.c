@@ -217,6 +217,10 @@ void pause_track() {
 	VDP_drawText("  = PAUSED =  ", 24, 2);
 }
 
+void resume_track(uint16_t track) {
+	XGM_resumePlay(song_dat(track));
+}
+
 
 const uint16_t black_pal[16] = {
 	0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000,
@@ -265,8 +269,7 @@ void main_title() {
 	while(TRUE) {
 		joy_update();
 		if(joy_pressed(BUTTON_A|BUTTON_B|BUTTON_C|BUTTON_START)) break;
-		if(cycle_ticks < 400) {
-			cycle_ticks++;
+		if(++cycle_ticks >= 360) cycle_ticks = 0;
 			switch(cycle_ticks) {
 				/* Pink */
 				case 6:   LIGHT(PINK, LOW); break; // Smooth on/off 3 times
@@ -326,7 +329,7 @@ void main_title() {
 				/* Press Start */
 				case 88: VDP_setPalette(PAL1, text_pal); break;
 			}
-		}
+		
 		SYS_doVBlankProcess();
 	}
 	//VDP_clearText(15, 20, 11);
@@ -436,10 +439,13 @@ void main_player() {
 					play_track(track);
 					marquee_set_track(&m_playing, song_artist(track), song_name(track));
 					timer_reset(&playtime);
+					timer_draw(&playtime, 21, 14);
+					timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
 				} else if(paused) {
 					paused = 0;
-					play_track(track);
+					resume_track(track);
 					marquee_set_track(&m_playing, song_artist(track), song_name(track));
+					//timer_reset(&playtime);
 				} else {
 					paused = 1;
 					pause_track();
@@ -448,12 +454,16 @@ void main_player() {
 				paused = 1;
 				XGM_pausePlay();
 				marquee_set_track(&m_playing, "N/A", "N/A");
+				timer_reset(&playtime);
+				timer_draw(&playtime, 21, 14);
+				timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
 			} else if(joy_pressed(BUTTON_C)) {
 				uint16_t old_id = track_order[prev_track];
 				mode = cycle_mode(mode, mode_index);
 				prev_track = find_song(old_id);
-				boxes_swap(track);
-				screen_refresh(track);
+				track = prev_track;
+				boxes_swap(prev_track);
+				screen_refresh(prev_track);
 				//if(!paused) {
 				//if(track != prev_track) {
 					//prev_track = track;
