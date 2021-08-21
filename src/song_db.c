@@ -3,6 +3,9 @@
 #include "song_db.h"
 #include "resources.h"
 
+// Note that the last value in the length is a frame count and not centiseconds, this means
+// the time will differ slightly on PAL systems, and anything over 49 is effectively still 49
+
 const song_db_def song_db[NUM_SONGS] = {
 //		{ NULL,     &SPR_YM20, &PAL_YM20, "Silence",                    "N/A" },
 		{ BGM_AETA, &SPR_AETA, &PAL_AETA, &TS_AETA, &PAL_T_AETA, "I'm All Ears to Adventure!", "RigidatoMS",       {0,1,55,19}, },

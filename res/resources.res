@@ -54,6 +54,7 @@ IMAGE   IMG_BackC   "img/back_credits.png" 2 1
 TILESET TS_Mode     "ts/modes.png"    0 0
 TILESET TS_Progress "ts/progress.png" 0 0
 TILESET TS_Belt     "ts/belt.png"     0 0
+TILESET TS_Vis		"ts/vis.png"      0 0
 
 TILESET  TS_AETA    "ts/im_all_ears.png"    0 0
 TILESET  TS_ANTR    "ts/a_night_to.png"     0 0

@@ -4,6 +4,11 @@
 #include "song_db.h"
 #include "resources.h"
 
+#define BACK_INDEX  TILE_USERINDEX
+#define BACKC_INDEX 762
+#define TITLE_INDEX 880
+#define VIS_INDEX 	1148
+
 /* JOYPAD WRAPPER */
 
 static uint16_t joystate, oldstate;
@@ -130,6 +135,7 @@ void boxes_swap(uint16_t track) {
 	SPR_loadAllFrames(song_spr(next), box2_index, NULL);
 	//VDP_setPalette(PAL2, song_pal(prev));
 	//VDP_setPalette(PAL3, song_pal(next));
+	// No dots pls
 	DMA_queueDma(DMA_CRAM, song_pal(prev), PAL2<<5, 16, 2);
 	DMA_queueDma(DMA_CRAM, song_pal(next), PAL3<<5, 16, 2);
 }
@@ -183,6 +189,55 @@ void boxes_update(Sprite *box[], Sprite *wheel[], uint16_t track) {
 	// Move conveyor belts
 	belt_x -= boxes_xspeed;
 	belt_draw(FALSE);
+}
+
+/* VISUALIZER */
+
+#define VIS_X 21
+#define VIS_Y 10
+
+uint8_t vis_state[8];
+
+void vis_clear() {
+	for(uint16_t i = 0; i < 8; i++) {
+		vis_state[i] = 0;
+	}
+}
+
+void vis_raise_bar(uint8_t ind) {
+	vis_state[ind] = 16 << 2;
+}
+
+void vis_update() {
+	for(uint16_t i = 0; i < 8; i++) {
+		if(vis_state[i]) vis_state[i]--;
+	}
+	// Map vis bar values to tiles. Look at res/ts/vis.png before reading this and it'll make a lot more sense
+	for(uint16_t i = 0; i < 4; i++) {
+		uint16_t vis_tile[2] = {0};
+		uint16_t temp_tile = 0;
+		uint8_t l_state = vis_state[i<<1];
+		uint8_t r_state = vis_state[(i<<1) + 1];
+		temp_tile = (l_state >> 2) * 9;
+		if(temp_tile > 8 * 9) {
+			temp_tile -= 8 * 9;
+			vis_tile[1] += 8 * 9;
+		} else {
+			vis_tile[1] += temp_tile;
+			temp_tile = 0;
+		}
+		vis_tile[0] = (r_state >> 2);
+		if(vis_tile[0] > 8) {
+			vis_tile[0] -= 8;
+			vis_tile[1] += 8;
+		} else {
+			vis_tile[1] += vis_tile[0];
+			vis_tile[0] = 0;
+		}
+		vis_tile[0] += temp_tile;
+		VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0,1,0,0,VIS_INDEX + vis_tile[0]), VIS_X + i, VIS_Y);
+		VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0,1,0,0,VIS_INDEX + vis_tile[1]), VIS_X + i, VIS_Y + 1);
+	}
 }
 
 /* MAIN */
@@ -259,10 +314,12 @@ void main_title() {
 	uint16_t cycle_ticks = 0;
 	SYS_disableInts();
 	VDP_setEnable(FALSE);
-	VDP_loadTileSet(IMG_Back.tileset, TILE_USERINDEX, DMA);
-	VDP_loadTileSet(IMG_BackC.tileset, 762, DMA);
-	VDP_loadTileSet(IMG_Title.tileset, 880, DMA);
-	VDP_setTileMapEx(BG_B, IMG_Title.tilemap, 880, 0, 0, 0, 0, IMG_Title.tilemap->w, IMG_Title.tilemap->h, DMA);
+	// There is a memory leak or fragmentation messing with tileset decompression,
+	// So I load them all up front since there is plenty of VRAM
+	VDP_loadTileSet(IMG_Back.tileset, BACK_INDEX, DMA);
+	VDP_loadTileSet(IMG_BackC.tileset, BACKC_INDEX, DMA);
+	VDP_loadTileSet(IMG_Title.tileset, TITLE_INDEX, DMA);
+	VDP_setTileMapEx(BG_B, IMG_Title.tilemap, TITLE_INDEX, 0, 0, 0, 0, IMG_Title.tilemap->w, IMG_Title.tilemap->h, DMA);
 	//VDP_drawImage(BG_B, &IMG_Title, 0, 0);
 	VDP_setPalette(PAL0, black_pal /*PAL_Title.data*/);
 	VDP_setPalette(PAL1, black_pal /*text_pal*/);
@@ -336,7 +393,6 @@ void main_title() {
 		
 		SYS_doVBlankProcess();
 	}
-	//VDP_clearText(15, 20, 11);
 }
 
 void main_player() {
@@ -351,8 +407,8 @@ void main_player() {
 	uint16_t track = 0;
 	uint16_t prev_track = 0;
 	
-	VDP_setTileMapEx(BG_B, IMG_Back.tilemap, TILE_USERINDEX, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
-	mode_index = TILE_USERINDEX + IMG_Back.tileset->numTile;
+	VDP_setTileMapEx(BG_B, IMG_Back.tilemap, BACK_INDEX, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
+	mode_index = BACK_INDEX + IMG_Back.tileset->numTile;
 	wheel_index = mode_index + TS_Mode.numTile;
 	VDP_loadTileSet(&TS_Mode, mode_index, DMA);
 	SPR_loadAllFrames(&SPR_Wheel, wheel_index, &box1_index);
@@ -397,6 +453,8 @@ void main_player() {
 		SPR_setAutoTileUpload(box[i], FALSE);
 		SPR_setVRAMTileIndex(box[i], i ? box2_index : box1_index);
 	}
+	// Vis bars
+	VDP_loadTileSet(&TS_Vis, VIS_INDEX, DMA);
 	
 	screen_refresh(track);
 	Marquee m_playing, m_selected;
@@ -406,8 +464,12 @@ void main_player() {
 	marquee_set_track(&m_selected, song_artist(track), song_name(track));
 	Timer playtime;
 	timer_reset(&playtime);
-	timer_draw(&playtime, 21, 14);
+	timer_draw(&playtime, 21, 13);
 	timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
+	const Timer *tracklen = song_len(track);
+	timer_draw(tracklen, 21, 14);
+	VDP_drawText("/", 20, 14);
+	vis_clear();
 	// Draw "Now Playing" text in upper right
 	VDP_drawText("Now Playing:", 23, 1);
 	VDP_drawText("Previous", 2, 8);
@@ -415,6 +477,7 @@ void main_player() {
 	
 	VDP_setEnable(TRUE);
 	SYS_enableInts();
+	// Get the sprites on screen ASAP or it'll flicker
 	SPR_update();
 	SYS_doVBlankProcess();
 	
@@ -428,7 +491,7 @@ void main_player() {
 	
 	while(TRUE) {
 		joy_update();
-		if(!boxes_moving) {
+		if(!boxes_moving) { // Don't listen for inputs during box move animation
 			if(joy_pressed(BUTTON_LEFT)) {
 				if(--track >= NUM_SONGS) track = NUM_SONGS - 1;
 				boxes_move_left();
@@ -439,48 +502,44 @@ void main_player() {
 				marquee_set_track(&m_selected, song_artist(track), song_name(track));
 			}
 			if(joy_pressed(BUTTON_A)) {
+				// Play a new track, or pause/resume the current one
 				if(track != prev_track || (!XGM_isPlaying() && !paused)) {
 					prev_track = track;
 					paused = 0;
 					play_track(track);
 					marquee_set_track(&m_playing, song_artist(track), song_name(track));
 					timer_reset(&playtime);
-					timer_draw(&playtime, 21, 14);
+					timer_draw(&playtime, 21, 13);
 					timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
+					tracklen = song_len(prev_track);
+					timer_draw(tracklen, 21, 14);
 				} else if(paused) {
 					paused = 0;
 					resume_track(track);
 					marquee_set_track(&m_playing, song_artist(track), song_name(track));
-					//timer_reset(&playtime);
 				} else {
 					paused = 1;
 					pause_track();
 				}
 			} else if(joy_pressed(BUTTON_B)) {
+				// Stop the track, make sure paused is 0 so next play will start from beginning
 				paused = 0;
 				XGM_pausePlay();
 				marquee_set_track(&m_playing, "N/A", "N/A");
 				timer_reset(&playtime);
-				timer_draw(&playtime, 21, 14);
+				timer_draw(&playtime, 21, 13);
 				timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
+				timer_draw(tracklen, 21, 14);
 			} else if(joy_pressed(BUTTON_C)) {
+				// Cycle play mode, keep the currently playing track selected when shuffling
 				uint16_t old_id = track_order[prev_track];
 				mode = cycle_mode(mode, mode_index);
 				prev_track = find_song(old_id);
 				track = prev_track;
 				boxes_swap(prev_track);
 				screen_refresh(prev_track);
-				//if(!paused) {
-				//if(track != prev_track) {
-					//prev_track = track;
-					//play_track(track);
-					//marquee_set_track(&m_playing, song_artist(track), song_name(track));
-					//timer_reset(&playtime);
-					//timer_draw(&playtime, 21, 14);
-					//timer_draw_bar(&playtime, song_len(track), 14, 15);
-				//}
-				//}
 			} else if(joy_pressed(BUTTON_START)) {
+				// Go to credits screen
 				XGM_pausePlay();
 				SYS_doVBlankProcess();
 				break;
@@ -502,12 +561,19 @@ void main_player() {
 				play_track(prev_track);
 				marquee_set_track(&m_playing, song_artist(prev_track), song_name(prev_track));
 				timer_reset(&playtime);
+				timer_draw(&playtime, 21, 13);
+				timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
+				tracklen = song_len(track);
+				timer_draw(tracklen, 21, 14);
 			} else if(timer_tick(&playtime)) {
-				timer_draw(&playtime, 21, 14);
+				// Redraw play time once per second
+				timer_draw(&playtime, 21, 13);
 				timer_draw_bar(&playtime, song_len(prev_track), 14, 15);
 			}
 			marquee_update(&m_playing);
+			if(playtime.f & 1) vis_raise_bar(random() & 7);
 		}
+		vis_update();
 		marquee_update(&m_selected);
 		boxes_update(box, wheel, track);
 		SPR_update();
@@ -527,7 +593,7 @@ void main_credits() {
 	VDP_setPalette(PAL1, black_pal);
 	VDP_setEnable(FALSE);
 	
-	VDP_setTileMapEx(BG_B, IMG_BackC.tilemap, 762, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
+	VDP_setTileMapEx(BG_B, IMG_BackC.tilemap, BACKC_INDEX, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
 	VDP_clearPlane(BG_A, TRUE);
 	Sprite *wheel[16];
 	for(uint16_t i = 0; i < 16; i++) {
