@@ -3,3 +3,4 @@
 *.bin
 symbol.txt
 resources.h
+.DS_Store
