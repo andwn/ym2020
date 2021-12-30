@@ -1,5 +1,7 @@
 ## YM 2020
 
+![YM2020 Logo](ym2020animation_large.gif)
+
 ### How to Build
 
 1. Get [marsdev](https://github.com/andwn/marsdev) set up. Vanilla SGDK on Windows may work too, but I didn't try.
