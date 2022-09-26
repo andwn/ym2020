@@ -4,7 +4,7 @@
 #include "song_db.h"
 #include "resources.h"
 
-#define BACK_INDEX  TILE_USERINDEX
+#define BACK_INDEX  TILE_USER_INDEX
 #define BACKC_INDEX 762
 #define TITLE_INDEX 880
 #define VIS_INDEX 	1148
@@ -81,7 +81,7 @@ int16_t boxes_xspeed;
 
 
 void screen_refresh(uint16_t track) {
-	VDP_setPalette(PAL1, song_pal_t(track));
+	PAL_setPalette(PAL1, song_pal_t(track), DMA);
 	VDP_loadTileSet(song_ts(track), screen_index, DMA);
 	uint16_t yy = 0;
 	for(uint16_t y = 0; y < 5; y++) {
@@ -273,7 +273,8 @@ void pause_track() {
 }
 
 void resume_track(uint16_t track) {
-	XGM_resumePlay(song_dat(track));
+	(void)track;
+	XGM_resumePlay(/*song_dat(track)*/);
 }
 
 
@@ -321,8 +322,8 @@ void main_title() {
 	VDP_loadTileSet(IMG_Title.tileset, TITLE_INDEX, DMA);
 	VDP_setTileMapEx(BG_B, IMG_Title.tilemap, TITLE_INDEX, 0, 0, 0, 0, IMG_Title.tilemap->w, IMG_Title.tilemap->h, DMA);
 	//VDP_drawImage(BG_B, &IMG_Title, 0, 0);
-	VDP_setPalette(PAL0, black_pal /*PAL_Title.data*/);
-	VDP_setPalette(PAL1, black_pal /*text_pal*/);
+	PAL_setPalette(PAL0, black_pal /*PAL_Title.data*/, DMA);
+	PAL_setPalette(PAL1, black_pal /*text_pal*/, DMA);
 	VDP_drawText("PRESS START", 15, 20);
 	VDP_setEnable(TRUE);
 	SYS_enableInts();
@@ -388,7 +389,7 @@ void main_title() {
 				case 201: LIGHT(YELLOW, FULL); break;
 
 				/* Press Start */
-				case 88: VDP_setPalette(PAL1, text_pal); break;
+				case 88: PAL_setPalette(PAL1, text_pal, CPU); break;
 			}
 		
 		SYS_doVBlankProcess();
@@ -397,8 +398,8 @@ void main_title() {
 
 void main_player() {
 	SYS_disableInts();
-	VDP_setPalette(PAL0, black_pal);
-	VDP_setPalette(PAL1, black_pal);
+	PAL_setPalette(PAL0, black_pal, CPU);
+	PAL_setPalette(PAL1, black_pal, CPU);
 	VDP_setEnable(FALSE);
 	VDP_clearPlane(BG_A, TRUE);
 	
@@ -481,10 +482,10 @@ void main_player() {
 	SPR_update();
 	SYS_doVBlankProcess();
 	
-	VDP_setPalette(PAL0, PAL_Back.data);
+	PAL_setPalette(PAL0, PAL_Back.data, DMA);
 	//VDP_setPalette(PAL1, text_pal);
-	VDP_setPalette(PAL2, song_pal(prev));
-	VDP_setPalette(PAL3, song_pal(next));
+	PAL_setPalette(PAL2, song_pal(prev), DMA);
+	PAL_setPalette(PAL3, song_pal(next), DMA);
 	
 	// IT BEGINS
 	play_track(track);
@@ -589,8 +590,8 @@ void main_player() {
 
 void main_credits() {
 	SYS_disableInts();
-	VDP_setPalette(PAL0, black_pal);
-	VDP_setPalette(PAL1, black_pal);
+	PAL_setPalette(PAL0, black_pal, CPU);
+	PAL_setPalette(PAL1, black_pal, CPU);
 	VDP_setEnable(FALSE);
 	
 	VDP_setTileMapEx(BG_B, IMG_BackC.tilemap, BACKC_INDEX, 0, 0, 0, 0, IMG_Back.tilemap->w, IMG_Back.tilemap->h, DMA);
@@ -628,9 +629,9 @@ void main_credits() {
 	VDP_drawText("Retro Stage", 	24, 10);
 	VDP_drawText(" Orgia Mode", 	24, 12);
 	
-	VDP_setPalette(PAL0, PAL_Back.data);
-	VDP_setPalette(PAL1, text_pal);
-	VDP_setPalette(PAL2, PAL_YM20.data);
+	PAL_setPalette(PAL0, PAL_Back.data, CPU);
+	PAL_setPalette(PAL1, text_pal, CPU);
+	PAL_setPalette(PAL2, PAL_YM20.data, CPU);
 	
 	XGM_startPlay(BGM_Fireworks);
 
