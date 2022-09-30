@@ -136,8 +136,8 @@ void boxes_swap(uint16_t track) {
 	//VDP_setPalette(PAL2, song_pal(prev));
 	//VDP_setPalette(PAL3, song_pal(next));
 	// No dots pls
-	DMA_queueDma(DMA_CRAM, song_pal(prev), PAL2<<5, 16, 2);
-	DMA_queueDma(DMA_CRAM, song_pal(next), PAL3<<5, 16, 2);
+	DMA_queueDma(DMA_CRAM, (void*)song_pal(prev), PAL2<<5, 16, 2);
+	DMA_queueDma(DMA_CRAM, (void*)song_pal(next), PAL3<<5, 16, 2);
 }
 
 void boxes_update(Sprite *box[], Sprite *wheel[], uint16_t track) {
@@ -309,7 +309,7 @@ const uint16_t title_lit_med[16] = {
 #define PINK   1
 #define BLUE   5
 #define YELLOW 9
-#define LIGHT(col, lev) DMA_queueDma(DMA_CRAM, &lev[col], col<<1, 4, 2)
+#define LIGHT(col, lev) DMA_queueDma(DMA_CRAM, (void*)&lev[col], col<<1, 4, 2)
 
 void main_title() {
 	uint16_t cycle_ticks = 0;
