@@ -7,6 +7,10 @@
 1. Get [marsdev](https://github.com/andwn/marsdev) set up. Vanilla SGDK on Windows may work too, but I didn't try.
 2. Just clone the repo and run `make`.
 
+Alternatively, you can build the ROM using Docker with the command:
+
+    ./build-rom.sh
+
 ### License
 
 Code: MIT
